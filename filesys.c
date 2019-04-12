@@ -7,6 +7,67 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+
+char* merkel_tree (char* strings[], size_t str_count) {
+  if (str_count == 0) {
+    return NULL;
+  }
+  if (str_count == 1) {
+    return strings[0];
+  }
+
+  size_t parentList_count = str_count/2 + str_count%2;
+  char* parentList[parentList_count];
+  
+  for (int i = 0; i < parentList_count; i++) {
+    parentList[i] = (char*)malloc(20*sizeof(char));
+  }
+
+  char* buff = (char*)malloc(41*sizeof(char)); 
+  
+  for (int i = 0; i < str_count - 1; i += 2) {
+    strncpy(buff, strings[i], 20);
+    strncat(buff, strings[i+1], 20);
+    SHA1((unsigned char*)buff, 40, (unsigned char*)parentList[i/2]);
+  }
+
+  if (str_count % 2) {
+    SHA1((unsigned char*)strings[str_count - 1], 20, (unsigned char*)parentList[str_count/2]);
+  }
+
+  return merkel_tree(parentList, parentList_count);
+} 
+
+
+char* merkel4file(char* filename) {
+  int fd = open(filename, O_RDONLY, 0);
+  
+  if(fd==-1)		
+  	return NULL;		//check if correct
+  
+  size_t file_size = lseek(fd, 0, SEEK_END);
+  lseek(fd, 0, SEEK_SET);
+  size_t totBlocks = file_size/64 + (bool)(file_size%64);
+  char* hblocks[totBlocks];
+  int tot_read;
+  char* buffer = (char*)malloc(64*sizeof(char));
+  
+  for (int i = 0; i < totBlocks; i++) {
+    if(!(tot_read = read(fd, buffer, 64))) {
+      return NULL;
+    }
+
+    hblocks[i] = (char*)malloc(20*sizeof(char));
+    SHA1((unsigned char*)buffer, tot_read, (unsigned char*)hblocks[i]);
+  }
+
+  return merkel_tree(hblocks, totBlocks);
+}
+
+
 
 static int filesys_inited = 0;
 
@@ -71,13 +132,47 @@ int s_close (int fd)
 	return close (fd);
 }
 
+/* Creates the secure.txt file if it doesn’t exist */
 /* Check the integrity of all files in secure.txt
  * remove the non-existent files from secure.txt
- * returns 1, if an existing file is tampered
+ * returns 1, if an/any existing file is tampered
  * return 0 on successful initialization
  */
 int filesys_init (void)
 {
+	int fd=open("secure.txt", O_RDONLY | O_CREAT);
+	if(fd==-1){
+		perror("Unable to open/create secure.txt");
+	}
+
+	char filenHash[53];		//32 byte file name+ 1 space + 20 byte hash
+	char filename[32];
+	char* hash;
+
+	lseek(fd, 0, SEEK_SET);	//start reading the file from beginning
+	while(read(fd, filenHash, 53)!=-1){
+		filename=strtok(filenHash," ");
+		hashValueInFile=
+		hashValueCalculated=merkel4file(filename);	
+
+		/*
+			Pseudocode:
+			-----------
+			if(hashValueCalculated==NULL)
+				remove the <file> <its_hashcode> from secure.txt 
+			else if(hashValueCalculated!=hashValueInFile)
+				return 1;
+			
+		*/
+
+		lseek(fd, 4, SEEK_CUR);		//We are using 4 Spaces between 2 hashes 
+	}
+	
+	/*Structure of secure.txt is "filename hash"
+	* Open secure.txt here
+	* Traverse the file for filenames. Open every file, read its contents, compute its SHA1.
+	* Compare this computed SHA1 with with the stored SHA1. If it is not the same, return 0.
+	* Else, return 1, filesys initialized.*/
 	filesys_inited = 1;
 	return 0;
 }
