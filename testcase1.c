@@ -65,6 +65,12 @@ int main ()
 	for (i = 0; i < NUM_FILES; i++) {
 		snprintf (filename, 32, "foo_%d.txt", i);
 		ret = open_file (filename);
+		
+		/*
+			i)  If the file != corrupted file, open_file should return 1
+			ii) If the file is corrupted, it should return -1 , i.e open_file will return 0
+		*/
+
 		if ((ret == 0 && i != corrupt_idx) || (ret == 1 && i == corrupt_idx)) {
 			printf ("open test failed\n");
 			return 0;
@@ -74,3 +80,7 @@ int main ()
 	printf ("open test passed\n");
 	return 0;
 }
+
+
+
+

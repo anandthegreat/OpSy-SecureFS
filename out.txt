@@ -1,0 +1,56 @@
+./base
+filsize is: 115.000000
+num records is : 2
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+test2.txt..
+98765432198765432112
+test2.txt file does not exist or is empty
+-------------test.txt                         12345678912345678912    
+----./testcase1
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+open test failed
+./base
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+./testcase2
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+write test failed
+./base
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+./testcase3
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+Seek test failed
+./base
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+./testcase4
+filsize is: 58.000000
+num records is : 1
+test.txt..
+12345678912345678912
+®(e!óÌqâ”ÿOrèÆ=\À4^G
+init filesys test failed

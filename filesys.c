@@ -9,7 +9,29 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 
+void trimLeadingSpaces(char *str, char ch)      //to remove leading white spaces
+{
+    char *p, *q;
+    int done=0;
+    for (q = p = str; *p; p++){
+      if (*p != ch || done==1){
+        *q++ = *p;
+        done=1;
+      }
+      else {
+        done=1;
+      }
+    }
+    *q = '\0';
+}
+
+void removeSubstring(char *s,const char *toremove)
+{
+  while(( s=strstr(s,toremove)) )
+    memmove(s,s+strlen(toremove)+4,5+strlen(s+strlen(toremove)));
+}
 
 char* merkel_tree (char* strings[], size_t str_count) {
   if (str_count == 0) {
@@ -21,13 +43,13 @@ char* merkel_tree (char* strings[], size_t str_count) {
 
   size_t parentList_count = str_count/2 + str_count%2;
   char* parentList[parentList_count];
-  
+
   for (int i = 0; i < parentList_count; i++) {
     parentList[i] = (char*)malloc(20*sizeof(char));
   }
 
-  char* buff = (char*)malloc(41*sizeof(char)); 
-  
+  char* buff = (char*)malloc(41*sizeof(char));
+
   for (int i = 0; i < str_count - 1; i += 2) {
     strncpy(buff, strings[i], 20);
     strncat(buff, strings[i+1], 20);
@@ -39,22 +61,24 @@ char* merkel_tree (char* strings[], size_t str_count) {
   }
 
   return merkel_tree(parentList, parentList_count);
-} 
+}
 
 
 char* merkel4file(char* filename) {
-  int fd = open(filename, O_RDONLY, 0);
-  
-  if(fd==-1)		
-  	return NULL;		//check if correct
-  
+  int fd = open(filename, O_RDONLY, 0666);
+  if(fd==-1) {
+    // printf("%s\n","In merkel tree for file" );
+    return NULL;		//if file does not exists or is empty
+
+  }
+
   size_t file_size = lseek(fd, 0, SEEK_END);
   lseek(fd, 0, SEEK_SET);
   size_t totBlocks = file_size/64 + (bool)(file_size%64);
   char* hblocks[totBlocks];
   int tot_read;
   char* buffer = (char*)malloc(64*sizeof(char));
-  
+
   for (int i = 0; i < totBlocks; i++) {
     if(!(tot_read = read(fd, buffer, 64))) {
       return NULL;
@@ -90,10 +114,35 @@ void get_sha1_hash (const void *buf, int len, const void *sha1)
 int s_open (const char *pathname, int flags, mode_t mode)
 {
 	assert (filesys_inited);
+  // int fd=open("secure.txt", O_RDWR | O_CREAT);
+  // char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));
+  // read(fd, secureContents,fileSize);
+  // //check if file exists and has contents
+  // if( (access( __fname__, F_OK ) != -1 ) && !feof(fopen(pathname, "r"))) {
+  //     // file entry exists secure.txt
+  //     // checks if file tampered
+  //     char* filenHash =strstr(secureContents,  __fname__);
+  //         strtok(filenHash," ")
+  //     char* storedHash=strtok(NULL, " ");
+  //     char* hashValueCalculated=merkel4file(filename);
+
+  //     if(strcmp(hashValueCalculated,storedHash)!=0){
+  //       return 1;
+  //     }
+
+  // } else {
+  //     // file entry doesn't exist in secure.txt
+  //     // creates new Merkel tree and add  record in secure.txt
+  //     strncat(secureContents,__fname__);
+  //     strncat(secureContents," ");
+  //     char* hashValueCalculated=merkel4file(filename);
+  //     strncat(secureContents,hashValueCalculated);
+  //     strncat(secureContents,"    ");
+  // }
 	return open (pathname, flags, mode);
 }
 
-/* SEEK_END should always return the file size 
+/* SEEK_END should always return the file size
  * updated through the secure file system APIs.
  */
 int s_lseek (int fd, long offset, int whence)
@@ -115,7 +164,7 @@ ssize_t s_write (int fd, const void *buf, size_t count)
 	return write (fd, buf, count);
 }
 
-/* check the integrity of blocks containing the 
+/* check the integrity of blocks containing the
  * requested data.
  * returns -1 on failing the integrity check.
  */
@@ -140,34 +189,93 @@ int s_close (int fd)
  */
 int filesys_init (void)
 {
-	int fd=open("secure.txt", O_RDONLY | O_CREAT);
+	int fd=open("secure.txt", O_RDWR | O_CREAT,0666);
 	if(fd==-1){
 		perror("Unable to open/create secure.txt");
 	}
 
-	char filenHash[53];		//32 byte file name+ 1 space + 20 byte hash
-	char filename[32];
-	char* hash;
+	char* filenHash=(char*)malloc(53*sizeof(char));		                     //32 byte file name+ 1 space + 20 byte hash
+  char* duplicatefilenHash=(char*)malloc(53*sizeof(char));
+  char* filename;
+	char* storedHash;
+  char* hashValueCalculated;
 
-	lseek(fd, 0, SEEK_SET);	//start reading the file from beginning
-	while(read(fd, filenHash, 53)!=-1){
-		filename=strtok(filenHash," ");
-		hashValueInFile=
-		hashValueCalculated=merkel4file(filename);	
+  double fileSize = lseek(fd, 0, SEEK_END);
+  printf("filsize is: %f\n",fileSize );
 
-		/*
+  int numRecords=(fileSize/57);                       //How many files/hashes are present in secure.txt
+  printf("num records is : %d\n",numRecords);
+  int count=0;
+
+  lseek(fd, 0, SEEK_SET);	                                               //start reading the file from beginning
+  while(count<numRecords && read(fd, filenHash, 53)!=-1){
+    strcpy(duplicatefilenHash,filenHash);
+    // printf("%d\n",count );
+    filename=strtok(duplicatefilenHash," ");                                     //get filename
+    storedHash=strtok(NULL, " ");                                       //Get hash value corresponding to the above filename
+    trimLeadingSpaces(storedHash, ' ');
+    printf("%s..\n",filename );
+    printf("%s\n", storedHash);
+    hashValueCalculated=merkel4file(filename);                         //Calculate hash value for the above filename to check against stored hashvalue
+
+    /*
 			Pseudocode:
 			-----------
 			if(hashValueCalculated==NULL)
-				remove the <file> <its_hashcode> from secure.txt 
+				remove the <file> <its_hashcode> from secure.txt
 			else if(hashValueCalculated!=hashValueInFile)
 				return 1;
-			
-		*/
+      else
+        return 0;
 
-		lseek(fd, 4, SEEK_CUR);		//We are using 4 Spaces between 2 hashes 
-	}
-	
+		*/
+    if(hashValueCalculated==NULL){
+      printf("%s file does not exist or is empty\n", filename);
+      char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));
+      int currPtr=lseek(fd, 0, SEEK_CUR);
+      lseek(fd,0,SEEK_SET);
+      read(fd, secureContents,fileSize);
+      lseek(fd,0,SEEK_SET);
+      // printf("+++++++++++++%s",secureContents);
+      // printf("*************%s----\n",filenHash );
+      removeSubstring(secureContents, filenHash);
+      // printf("=============%s----",secureContents);   
+
+      close(fd);
+      if(remove("secure.txt")!=0){
+        printf("%s\n","Not Able To Delete secure.txt");
+        exit(0);
+      }
+
+      fd=open("secure.txt", O_RDWR | O_CREAT , 0666);
+    	if(fd==-1){
+    		perror("Unable to open/create secure.txt");
+    	}
+      fileSize-=57;
+      int ret=write(fd,secureContents,(int)fileSize);
+      if(ret==-1){
+        printf("write failed");
+        exit(0);
+      }
+      printf("-------------%s----",secureContents);
+      lseek(fd,currPtr-57,SEEK_SET);
+      numRecords-=1;
+    }
+    else
+      printf("%s\n", hashValueCalculated);
+
+    if(hashValueCalculated!=NULL){
+      // if(strcmp(hashValueCalculated,storedHash)!=0){
+      //   return 1;
+      // }
+    }
+
+    if(count==numRecords-1)
+      break;
+    count+=1;
+		lseek(fd, 4, SEEK_CUR);	                                        	//We are using 4 Spaces between 2 hashes. So this will then read the 'filename hash' of next file.
+  }
+
 	/*Structure of secure.txt is "filename hash"
 	* Open secure.txt here
 	* Traverse the file for filenames. Open every file, read its contents, compute its SHA1.

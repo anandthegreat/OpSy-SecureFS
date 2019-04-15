@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Werror -lssl -lcrypto
+CFLAGS=-Wall -Werror -lssl -lcrypto -lm
 
 default: testcase1 testcase2 testcase3 testcase4 base
 
@@ -29,4 +29,4 @@ run:
 	./testcase4
 
 clean:
-	rm -rf testcase1 testcase2 testcase3 testcase4 base *.txt
+	rm -rf testcase1 testcase2 testcase3 testcase4 base
