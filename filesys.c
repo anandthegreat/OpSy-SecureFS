@@ -67,10 +67,9 @@ char* merkel_tree (char* strings[], size_t str_count) {
 char* merkel4file(char* filename) {
   int fd = open(filename, O_RDONLY, 0666);
   if(fd==-1) {
-    // printf("%s\n","In merkel tree for file" );
     return NULL;		//if file does not exists or is empty
-
   }
+  printf("%s\n","In merkel tree for file" );
 
   size_t file_size = lseek(fd, 0, SEEK_END);
   lseek(fd, 0, SEEK_SET);
@@ -87,8 +86,9 @@ char* merkel4file(char* filename) {
     hblocks[i] = (char*)malloc(20*sizeof(char));
     SHA1((unsigned char*)buffer, tot_read, (unsigned char*)hblocks[i]);
   }
-
+  // printf("totblocks: %ld",totBlocks);
   return merkel_tree(hblocks, totBlocks);
+  // return "cchafhieefiqfoq";
 }
 
 
@@ -111,35 +111,68 @@ void get_sha1_hash (const void *buf, int len, const void *sha1)
  * update the hash in secure.txt.
  * returns -1 on failing the integrity check.
  */
+
 int s_open (const char *pathname, int flags, mode_t mode)
 {
 	assert (filesys_inited);
-  // int fd=open("secure.txt", O_RDWR | O_CREAT);
-  // char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));
-  // read(fd, secureContents,fileSize);
-  // //check if file exists and has contents
-  // if( (access( __fname__, F_OK ) != -1 ) && !feof(fopen(pathname, "r"))) {
-  //     // file entry exists secure.txt
-  //     // checks if file tampered
-  //     char* filenHash =strstr(secureContents,  __fname__);
-  //         strtok(filenHash," ")
-  //     char* storedHash=strtok(NULL, " ");
-  //     char* hashValueCalculated=merkel4file(filename);
+  int fd=open("secure.txt", O_RDWR);
+  double fileSize=lseek(fd,0,SEEK_END);                                         //filesize of secure.txt
+  char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));             //store contents on secure.txt
+  lseek(fd,0,SEEK_SET);                                                         //
+  read(fd, secureContents,fileSize);
 
-  //     if(strcmp(hashValueCalculated,storedHash)!=0){
-  //       return 1;
-  //     }
+  if( (access( pathname, F_OK ) != -1 ) && !feof(fopen(pathname, "r")))         // check if file exists and is not empty(pathname)
+  {
+    printf("secure contents : %s\n", secureContents);
+    printf("pathname: %s\n", pathname);
+    char *filenameInSecure=strstr(secureContents, pathname);                    //  check if file entry exists secure.txt
+    printf("fn in secure: %s",filenameInSecure);
+    strtok(filenameInSecure, " ");
+    char *storedHash=strtok(NULL, " ");
+    printf("stored hash : %s",storedHash);
+    // printf("ASHISH NEHRA%s\n",pathname );
+    if(filenameInSecure!=NULL)                                                   //If entry exist in secure.txt
+    {
+      printf("pathname is not null");
+      // checks if file tampered
+      // char* hashValueCalculated=merkel4file((char*)pathname);
+      // if(strcmp(hashValueCalculated,storedHash)!=0)                             // check integrity
+      //   return -1;
+      // else
+      //   return open(pathname,  flags, mode);
+    }
+    else
+    {                                                                            //If entry does not exist in secure.txt
+      printf("else%s\n",pathname);
+      // printf("%ld\n",strlen(pathname));
+      // char* hashValueCalculated=merkel4file((char*)pathname);                          //Calculate root of merkle to store in secure.txt
+      // printf("%s\n",hashValueCalculated );
+      // strcat(secureContents,pathname);
+      // strcat(secureContents," ");
+      // strcat(secureContents,hashValueCalculated);
+      // strcat(secureContents,"    ");
+      //
+      // close(fd);
+      // if(remove("secure.txt")!=0){
+      //   printf("%s\n","Not Able To Delete secure.txt");
+      //   exit(0);
+      // }
+      //
+      // fd=open("secure.txt", O_RDWR | O_CREAT , 0666);
+    	// if(fd==-1){
+    	// 	perror("Unable to open/create secure.txt");
+    	// }
 
-  // } else {
-  //     // file entry doesn't exist in secure.txt
-  //     // creates new Merkel tree and add  record in secure.txt
-  //     strncat(secureContents,__fname__);
-  //     strncat(secureContents," ");
-  //     char* hashValueCalculated=merkel4file(filename);
-  //     strncat(secureContents,hashValueCalculated);
-  //     strncat(secureContents,"    ");
-  // }
-	return open (pathname, flags, mode);
+      // int ret=write(fd,secureContents,(int)fileSize);
+      // if(ret==-1){
+      //   printf("write failed");
+      //   exit(0);
+      // }
+
+    }
+  }
+  else printf("Error in opening file/cannot read.");
+  return open(pathname, flags, mode);
 }
 
 /* SEEK_END should always return the file size
@@ -204,7 +237,7 @@ int filesys_init (void)
   printf("filsize is: %f\n",fileSize );
 
   int numRecords=(fileSize/57);                       //How many files/hashes are present in secure.txt
-  printf("num records is : %d\n",numRecords);
+  // printf("num records is : %d\n",numRecords);
   int count=0;
 
   lseek(fd, 0, SEEK_SET);	                                               //start reading the file from beginning
@@ -214,8 +247,8 @@ int filesys_init (void)
     filename=strtok(duplicatefilenHash," ");                                     //get filename
     storedHash=strtok(NULL, " ");                                       //Get hash value corresponding to the above filename
     trimLeadingSpaces(storedHash, ' ');
-    printf("%s..\n",filename );
-    printf("%s\n", storedHash);
+    // printf("%s..\n",filename );
+    // printf("%s\n", storedHash);
     hashValueCalculated=merkel4file(filename);                         //Calculate hash value for the above filename to check against stored hashvalue
 
     /*
@@ -239,7 +272,7 @@ int filesys_init (void)
       // printf("+++++++++++++%s",secureContents);
       // printf("*************%s----\n",filenHash );
       removeSubstring(secureContents, filenHash);
-      // printf("=============%s----",secureContents);   
+      // printf("=============%s----",secureContents);
 
       close(fd);
       if(remove("secure.txt")!=0){
@@ -257,12 +290,11 @@ int filesys_init (void)
         printf("write failed");
         exit(0);
       }
-      printf("-------------%s----",secureContents);
+      // printf("-------------%s----",secureContents);
       lseek(fd,currPtr-57,SEEK_SET);
       numRecords-=1;
     }
-    else
-      printf("%s\n", hashValueCalculated);
+    else printf("%s\n", hashValueCalculated);
 
     if(hashValueCalculated!=NULL){
       // if(strcmp(hashValueCalculated,storedHash)!=0){
