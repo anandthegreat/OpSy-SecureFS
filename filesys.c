@@ -126,17 +126,22 @@ int s_open (const char *pathname, int flags, mode_t mode)
   char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));             //store contents on secure.txt                                                         //
   read(fd, secureContents,(int)fileSize);
   lseek(fd,0,SEEK_SET);
+  char* secureContents2=(char*)malloc(((int)fileSize)*sizeof(char));             //store contents on secure.txt                                                         //
+  read(fd, secureContents2,(int)fileSize);
+  lseek(fd,0,SEEK_SET);
 
   // if( (access( pathname, F_OK ) != -1 ) && !feof(fopen(pathname, "r")))      // check if file exists and is not empty(pathname)
   // {
     // printf("secure contents : %s\n", secureContents);
     // printf("pathname: %s\n", pathname);
-  char *filenameInSecure=strstr(secureContents, pathname);                      // check if file entry exists secure.txt
+
+  char *filenameInSecure=strstr(secureContents2, pathname);                      // check if file entry exists secure.txt
   // printf("fn in secure: %s",filenameInSecure);
   if(filenameInSecure!=NULL)                                                    //If entry exist in secure.txt
   {
     strtok(filenameInSecure, " ");
     char *storedHash=strtok(NULL, " ");
+
     // printf("stored hash : %s",storedHash);
     printf("pathname is not null");
     // checks if file tampered
@@ -146,12 +151,13 @@ int s_open (const char *pathname, int flags, mode_t mode)
     { /*The file was initially empty but now some data has been written,
       so update it's hash in secure.txt and open the file without
       throwing any integrity check error    */
+
       char *temp=(char*)malloc(57*sizeof(char));
       memmove(temp,pathname,strlen(pathname));
       for(int i=0;i<33-strlen(pathname);i++){
         memmove(temp+strlen(pathname)+i," ",1);
       }
-      memmove(temp+1,"00000000000000000000",20);
+      memmove(temp+33,"00000000000000000000    ",24);
       removeSubstring(secureContents,temp);                                     //remove the 00...00 hash
       close(fd);
       if(remove("secure.txt")!=0){
@@ -169,9 +175,9 @@ int s_open (const char *pathname, int flags, mode_t mode)
         printf("write failed");
         exit(0);
       }
+
       //-------------------NOW UPDATE THE HASH------------------
       char* hashValueCalculated=merkel4file((char*)pathname);                     //Calculate root of merkle to store in secure.txt
-
       strcat(secureContents,pathname);
       for(int i=0;i<33-strlen(pathname);i++){
         strcat(secureContents," ");
@@ -311,7 +317,9 @@ int filesys_init (void)
 
   while(count<numRecords && read(fd, filenHash, 53)!=-1){
     strcpy(duplicatefilenHash,filenHash);
+    printf("huehuehuehue%s~~~~\n",filenHash );
     filename=strtok(duplicatefilenHash," ");                                    //get filename
+    printf("line 315:filenamein filesys_init is: %s~~~~\n",filename );
     storedHash=strtok(NULL, " ");                                               //Get hash value corresponding to the above filename
     trimLeadingSpaces(storedHash, ' ');
     hashValueCalculated=merkel4file(filename);                                  //Calculate hash value for the above filename to check against stored hashvalue
