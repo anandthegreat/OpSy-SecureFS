@@ -1,1 +1,8 @@
-test.txt                         12345678912345678912    test2.txt                        98765432198765432112    
+foo_0.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_1.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_2.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_3.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_4.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_5.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_6.txt                        «fˇb
+≠πm“œpç∆˙µAî    foo_7.txt                        '#û≤“∑üc([]±H>÷Ë    
