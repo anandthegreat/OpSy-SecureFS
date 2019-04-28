@@ -17,14 +17,14 @@ int main_loop (char *filename)
 
 	fd1 = s_open (filename, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
 	if (fd1 == -1) {
-		printf ("Unable to open file descriptor1\n");
+		printf ("Unable to open file descriptor1 in base.c\n");
 		return 0;
 	}
 
 	memset (buf, 1, 128);
 
 	total_size = 128000;
-	
+
 	while (total_size) {
 		size = (rand() % 127) + 1;
 		if (size > total_size) {
