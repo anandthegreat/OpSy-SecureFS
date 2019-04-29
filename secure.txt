@@ -1,9 +1,9 @@
 foo_0.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_1.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_2.txt                        Çfÿb
+­¹mÒÏpÆúµA”    foo_3.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_4.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_5.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_6.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    foo_7.txt                        Çfÿb
-­¹mÒÏpÆúµA”    foo_3.txt                        Çfÿb
 ­¹mÒÏpÆúµA”    

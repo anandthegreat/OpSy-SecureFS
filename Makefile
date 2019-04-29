@@ -20,7 +20,7 @@ testcase4: filesys.c testcase4.c
 
 run:
 	./base
-	./testcase2
+	./testcase1
 
 
 clean:

@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
-#include <time.h>
+// #include <libexplain/open.h>
 
 
 void trimLeadingSpaces(char *str, char ch)      //to remove leading white spaces
@@ -136,7 +136,6 @@ int s_open (const char *pathname, int flags, mode_t mode)
   // {
     // printf("secure contents : %s\n", secureContents);
     // printf("pathname: %s\n", pathname);
-
   char *filenameInSecure=strstr(secureContents2, pathname);                     // check if file entry exists secure.txt
   if(filenameInSecure!=NULL)                                                    //If entry exist in secure.txt
   {
@@ -147,12 +146,10 @@ int s_open (const char *pathname, int flags, mode_t mode)
     printf("pathname is not null");
     // checks if file tampered
     char* hashValueCalculated=merkel4file((char*)pathname);
-
     if(strcmp(storedHash,"00000000000000000000")==0)
     { /*The file was initially empty but now some data has been written,
       so update it's hash in secure.txt and open the file without
       throwing any integrity check error    */
-
       char *temp=(char*)malloc(57*sizeof(char));
       memmove(temp,pathname,strlen(pathname));
       for(int i=0;i<33-strlen(pathname);i++){
@@ -165,7 +162,6 @@ int s_open (const char *pathname, int flags, mode_t mode)
         printf("%s\n","Not Able To Delete secure.txt");
         exit(0);
       }
-
       fd=open("secure.txt", O_RDWR | O_CREAT , 0666);
     	if(fd==-1){
     		perror("Unable to open/create secure.txt");
@@ -176,22 +172,22 @@ int s_open (const char *pathname, int flags, mode_t mode)
         printf("write failed");
         exit(0);
       }
-
+      free(temp);
       //-------------------NOW UPDATE THE HASH------------------
-      char* hashValueCalculated=merkel4file((char*)pathname);                     //Calculate root of merkle to store in secure.txt
-      strcat(secureContents,pathname);
+      char* hashValueCalculated=merkel4file((char*)pathname);                   //Calculate root of merkle to store in secure.txt
+      memmove(secureContents+(int)fileSize,pathname,strlen(pathname));
       for(int i=0;i<33-strlen(pathname);i++){
-        strcat(secureContents," ");
+        memmove(secureContents+strlen(pathname)+i+(int)fileSize," ",1);
       }
-      strcat(secureContents,hashValueCalculated);
-      strcat(secureContents,"    ");
-
+      // printf("%s\n","hooooooooo");
+      memmove(secureContents+(int)fileSize+33,hashValueCalculated,20);
+      // printf("%s\n","kooooooooo" );
+      memmove(secureContents+(int)fileSize+53,"    ",4);
       close(fd);
       if(remove("secure.txt")!=0){
         printf("%s\n","Not Able To Delete secure.txt");
         exit(0);
       }
-
       fd=open("secure.txt", O_RDWR | O_CREAT , 0666);
     	if(fd==-1){
     		perror("Unable to open/create secure.txt");
@@ -203,13 +199,22 @@ int s_open (const char *pathname, int flags, mode_t mode)
         exit(0);
       }
       //-------------------------------
+      close(fd);
       return open(pathname,flags,mode);
       //-------------------------------
     }
     else if(strcmp(hashValueCalculated,storedHash)!=0)                               // check integrity
+    {
+      close(fd);
       return -1;
-    else
+    }
+    else{
+      close(fd);
+      free(secureContents);
+      free(secureContents2);
       return open(pathname, flags, mode);
+    }
+
   }
 
   else
@@ -224,12 +229,13 @@ int s_open (const char *pathname, int flags, mode_t mode)
       printf("hashValueCalculated is: %s\n",hashValueCalculated );
     else hashValueCalculated="00000000000000000000";                            //arbitrary entry
 
-    strcat(secureContents,pathname);
+    memmove(secureContents+(int)fileSize,pathname,strlen(pathname));
     for(int i=0;i<33-strlen(pathname);i++){
-      strcat(secureContents," ");
+      memmove(secureContents+strlen(pathname)+i+(int)fileSize," ",1);
     }
-    strcat(secureContents,hashValueCalculated);
-    strcat(secureContents,"    ");
+    memmove(secureContents+(int)fileSize+33,hashValueCalculated,20);
+    memmove(secureContents+(int)fileSize+53,"    ",4);
+
 
     close(fd);
     if(remove("secure.txt")!=0){
@@ -249,6 +255,7 @@ int s_open (const char *pathname, int flags, mode_t mode)
     // free(secureContents);
   }
   // }
+  close(fd);
 
   return open(pathname, flags, mode);
 }
@@ -297,6 +304,11 @@ ssize_t s_write (int fd, const void *buf, size_t count)
   //now tempFileName contains the name of file which is pointed by fd
   //check its integrity
   // int securefd=open("secure.txt",O_RDWR);
+  // // if(securefd<0){
+  // //   fprintf(stderr, "%s\n", explain_open("secure.txt", O_RDWR, 0));
+  // //   exit(EXIT_FAILURE);
+  // // }
+  //
   // double fileSize=lseek(securefd,0,SEEK_END);                                   //filesize of secure.txt
   // lseek(securefd,0,SEEK_SET);
   // char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));             //store contents on secure.txt                                                         //
@@ -307,16 +319,22 @@ ssize_t s_write (int fd, const void *buf, size_t count)
   // {
   //   strtok(filenameInSecure, " ");
   //   char *storedHash=strtok(NULL, " ");
-  //   char* hashValueCalculated=merkel4file((char*)tempFileName);
-  //   if(strcmp(hashValueCalculated,storedHash)!=0)                               // check integrity
-  //     return -1;
+  //   char *hashValueCalculated=merkel4file((char*)tempFileName);
+  //   if(hashValueCalculated!=NULL){
+  //     if(strcmp(hashValueCalculated,storedHash)!=0)                             // check integrity
+  //     {
+  //   //     printf("%s\n","integrity corrupted");
+  //   //     return -1;
+  //     }
+  //   }
   // }
   // else{
   //   printf("%s\n","s_write(): entry does not exists in secure.txt");
   // }
+  // free(secureContents);
+  // close(securefd);
 
   //integrity check done
-
 	return write (fd, buf, count);
 }
 
@@ -409,7 +427,7 @@ int filesys_init (void)
       }
       // printf("-------------%s----",secureContents);
       lseek(fd,currPtr-57,SEEK_SET);
-      // free(secureContents);
+      free(secureContents);
       // numRecords-=1;                                                         //check if there is a need to uncomment
     }
     else {
@@ -424,7 +442,8 @@ int filesys_init (void)
     count+=1;
 		lseek(fd, 4, SEEK_CUR);	          	//We are using 4 Spaces between 2 hashes. So this will then read the 'filename hash' of next file.
   }
-
+  free(filenHash);
+  free(duplicatefilenHash);
 	/*Structure of secure.txt is "filename hash"
 	* Open secure.txt here
 	* Traverse the file for filenames. Open every file, read its contents, compute its SHA1.
