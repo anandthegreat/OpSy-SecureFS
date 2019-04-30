@@ -23,6 +23,8 @@ run:
 	./testcase1
 	./base
 	./testcase3
+	./base
+	./testcase4
 
 
 clean:

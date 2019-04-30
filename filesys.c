@@ -492,10 +492,10 @@ int filesys_init (void)
       // numRecords-=1;                                                         //check if there is a need to uncomment
     }
     else {
-      printf("%s\n", hashValueCalculated);
-      // if(strcmp(hashValueCalculated,storedHash)!=0){
-      //   return 1;
-      // }
+      // printf("%s\n", hashValueCalculated);
+      if(strcmp(hashValueCalculated,storedHash)!=0){
+        return 1;
+      }
     }
 
     if(count==numRecords-1)
