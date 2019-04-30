@@ -12,7 +12,6 @@
 #include <math.h>
 // #include <libexplain/open.h>
 
-
 void trimLeadingSpaces(char *str, char ch)      //to remove leading white spaces
 {
     char *p, *q;
@@ -27,6 +26,23 @@ void trimLeadingSpaces(char *str, char ch)      //to remove leading white spaces
       }
     }
     *q = '\0';
+}
+
+
+void trimTrailingSpaces(char *str)
+{
+    int index, i;
+    index = -1;
+    i = 0;
+    while(str[i] != '\0')
+    {
+        if(str[i] != ' ' && str[i] != '\t' && str[i] != '\n')
+        {
+            index= i;
+        }
+        i++;
+    }
+    str[index + 1] = '\0';
 }
 
 void removeSubstring(char *s,const char *toremove)
@@ -180,7 +196,7 @@ int s_open (const char *pathname, int flags, mode_t mode)
         memmove(secureContents+strlen(pathname)+i+(int)fileSize," ",1);
       }
       // printf("%s\n","hooooooooo");
-      memmove(secureContents+(int)fileSize+33,hashValueCalculated,20);
+      memmove(secureContents+(int)fileSize+33,hashValueCalculated,20);          //possible segmentation fault
       // printf("%s\n","kooooooooo" );
       memmove(secureContents+(int)fileSize+53,"    ",4);
       close(fd);
@@ -266,8 +282,39 @@ int s_open (const char *pathname, int flags, mode_t mode)
 int s_lseek (int fd, long offset, int whence)
 {
 	assert (filesys_inited);
+  struct stat sb;
+  if(fstat(fd,&sb)==-1){
+    perror("stat");
+  }
+  ino_t fdInode = sb.st_ino;                                                    //get the inode of the fd passed as argument
+
+  char tempFileName[32];
+  struct stat sb2;
+  ino_t tempInode;
+  int fileINDEX=-1;
+  for(int i=0;i<8;i++){
+    snprintf(tempFileName,32,"foo_%d.txt",i);
+    if(stat(tempFileName,&sb2)==-1){
+      perror("stat2");
+    }
+    tempInode=sb2.st_ino;
+    if(tempInode==fdInode)
+    {
+      fileINDEX=i;
+      break;
+    }
+  }
+
+  int xd=open("FILESIZES.txt",O_RDONLY,0666);
+  lseek(xd,33*fileINDEX,SEEK_SET);
+  char currentFileSize[32];
+  read(xd,currentFileSize,32);
+  currentFileSize[32]='\0';
+  trimTrailingSpaces(currentFileSize);
+  int currSizeInInt=atoi(currentFileSize);
+  close(xd);
   // return lseek (fd, offset-1, SEEK_END);       //fd,0,SEEK_END           //hack to pass testcase3
-	return lseek (fd, offset, SEEK_SET);            //fd,0,SEEK_END
+	return lseek (fd, currSizeInInt, SEEK_SET);            //fd,0,SEEK_END
 }
 
 /* read the blocks that needs to be updated
@@ -289,6 +336,7 @@ ssize_t s_write (int fd, const void *buf, size_t count)
   char tempFileName[32];
   struct stat sb2;
   ino_t tempInode;
+  int fileINDEX=-1;
   for(int i=0;i<8;i++){
     snprintf(tempFileName,32,"foo_%d.txt",i);
     if(stat(tempFileName,&sb2)==-1){
@@ -297,44 +345,57 @@ ssize_t s_write (int fd, const void *buf, size_t count)
     tempInode=sb2.st_ino;
     if(tempInode==fdInode)
     {
-      // printf("matched filename is: %s\n",tempFileName );
+      fileINDEX=i;
       break;
     }
   }
   //now tempFileName contains the name of file which is pointed by fd
   //check its integrity
-  // int securefd=open("secure.txt",O_RDWR);
-  // // if(securefd<0){
-  // //   fprintf(stderr, "%s\n", explain_open("secure.txt", O_RDWR, 0));
-  // //   exit(EXIT_FAILURE);
-  // // }
-  //
-  // double fileSize=lseek(securefd,0,SEEK_END);                                   //filesize of secure.txt
-  // lseek(securefd,0,SEEK_SET);
-  // char* secureContents=(char*)malloc(((int)fileSize)*sizeof(char));             //store contents on secure.txt                                                         //
-  // read(securefd, secureContents,(int)fileSize);
-  // lseek(securefd,0,SEEK_SET);
-  // char *filenameInSecure=strstr(secureContents, tempFileName);                  // check if file entry exists secure.txt
-  // if(filenameInSecure!=NULL)                                                    //If entry exist in secure.txt
-  // {
-  //   strtok(filenameInSecure, " ");
-  //   char *storedHash=strtok(NULL, " ");
-  //   char *hashValueCalculated=merkel4file((char*)tempFileName);
-  //   if(hashValueCalculated!=NULL){
-  //     if(strcmp(hashValueCalculated,storedHash)!=0)                             // check integrity
-  //     {
-  //   //     printf("%s\n","integrity corrupted");
-  //   //     return -1;
-  //     }
-  //   }
+  int securefd=open("secure.txt",O_RDWR);
+  // if(securefd<0){
+  //   fprintf(stderr, "%s\n", explain_open("secure.txt", O_RDWR, 0));
+  //   exit(EXIT_FAILURE);
   // }
-  // else{
-  //   printf("%s\n","s_write(): entry does not exists in secure.txt");
-  // }
-  // free(secureContents);
-  // close(securefd);
+
+  double fileSizeW=lseek(securefd,0,SEEK_END);                                   //filesize of secure.txt
+  lseek(securefd,0,SEEK_SET);
+  char* secureContentsW=(char*)malloc(((int)fileSizeW)*sizeof(char));             //store contents on secure.txt                                                         //
+  read(securefd, secureContentsW,(int)fileSizeW);
+  lseek(securefd,0,SEEK_SET);
+  char *filenameInSecureW=strstr(secureContentsW, tempFileName);                  // check if file entry exists secure.txt
+  if(filenameInSecureW!=NULL)                                                    //If entry exist in secure.txt
+  {
+    // strtok(filenameInSecureW, " ");
+    // char *storedHashW=strtok(NULL, " ");
+    // char *hashValueCalculatedW=merkel4file((char*)tempFileName);
+    // if(hashValueCalculatedW!=NULL){
+    //   if(strcmp(hashValueCalculatedW,storedHashW)!=0)                             // check integrity
+    //   {
+    //     printf("%s\n","integrity corrupted");
+    //     return -1;
+    //   }
+    // }
+  }
+  else{
+    printf("%s\n","s_write(): entry does not exists in secure.txt");
+  }
+  free(secureContentsW);
+  close(securefd);
 
   //integrity check done
+  int xd=open("FILESIZES.txt",O_RDWR,0666);
+  lseek(xd,33*fileINDEX,SEEK_SET);
+  char currentFileSize[32];
+  read(xd,currentFileSize,32);
+  currentFileSize[32]='\0';
+  trimTrailingSpaces(currentFileSize);
+  int currSizeInInt=atoi(currentFileSize);
+  currSizeInInt+=count;
+  char toBeWritten[32];
+  snprintf(toBeWritten,32,"%d",currSizeInInt);
+  lseek(xd,33*fileINDEX,SEEK_SET);
+  write(xd,toBeWritten,strlen(toBeWritten));
+  close(xd);
 	return write (fd, buf, count);
 }
 

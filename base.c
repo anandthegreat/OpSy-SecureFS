@@ -62,8 +62,14 @@ int main_loop (char *filename)
 int main ()
 {
 	int i;
-	char filename[32];
+	int xd=open("FILESIZES.txt",O_RDWR | O_CREAT,0666);
+	for(i=0;i<NUM_FILES;i++){
+		lseek(xd,33*i,SEEK_SET);
+		write(xd,"0                                ",33);
+	}
+	close(xd);
 
+	char filename[32];
 	system ("rm -rf foo*.txt");
 
 	if (filesys_init() == 1) {
