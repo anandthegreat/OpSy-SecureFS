@@ -53,5 +53,5 @@ are going to be modified. On failing the integrity check, -1 is returned to
 the caller. s_write updates the Merkle tree, synchronize root hash with
 secure.txt and write modified blocks of the file.
 
-• __s_lseek:__ s_lseek ensures that SEEK END points to the size of the file
+* __s_lseek:__ s_lseek ensures that SEEK END points to the size of the file
 updated through the SecureFS APIs.
