@@ -22,6 +22,8 @@ run:
 	./base
 	./testcase1
 	./base
+	./testcase2
+	./base
 	./testcase3
 	./base
 	./testcase4
